@@ -26,6 +26,30 @@ type Node struct {
 	prev      []*Node
 }
 
+/*
+{
+   “order” :  {
+     "0" : [
+        “s0”
+     ],
+     "1": [
+        {
+        “order” :  {
+           "0":  [
+                “s1”
+           ],
+           "1": [
+                “s2”
+           ]
+        }},
+        “s3”
+    ],
+    "2": [
+        “s4”
+    ]
+   }
+}
+*/
 func New() *Dag {
 	this := new(Dag)
 	this.nodes = make(map[string]*Node)
@@ -56,6 +80,7 @@ func (this *Dag) AddEdge(from, to string) error {
 		return ErrCyclic
 	}
 
+	// Update next of fromnode and all prev nodes of fromnode
 	fromNode.next = append(fromNode.next, toNode)
 	fromNode.next = append(fromNode.next, toNode.next...)
 	for _, b := range fromNode.prev {
@@ -63,6 +88,7 @@ func (this *Dag) AddEdge(from, to string) error {
 		b.next = append(b.next, toNode.next...)
 	}
 
+	// Update prev of fromnode and all next nodes of fromnode
 	toNode.prev = append(toNode.prev, fromNode)
 	toNode.prev = append(toNode.prev, fromNode.prev...)
 	for _, b := range toNode.next {
@@ -79,6 +105,63 @@ func (this *Dag) AddEdge(from, to string) error {
 
 func (this *Dag) Node(id string) *Node {
 	return this.nodes[id]
+}
+
+func findInBase(base [][]string, id string) int {
+	for pos, list := range base {
+		if list != nil {
+			for _, b := range list {
+				if b == id {
+					return pos
+				}
+			}
+		}
+	}
+	return -1
+}
+
+func (this *Dag) GetDependencyOrder() *DependencyOrder {
+	var start string
+	var end string
+
+	base = make([][]string, len(list))
+
+	/*
+		visitReferenceMap := make(map[string]bool)
+		// Find the start and end node and initialize the visit reference map
+			for _, b := range list {
+			if b.indegree == 0 {
+				start = b.id
+			}
+			if b.outdegree == 0 {
+				end = b.id
+			}
+			visitReferenceMap[b.name] = false
+		}
+	*/
+
+	pos := 0
+	for _, b := range list {
+		if len(b.prev) == 0 {
+			continue
+		}
+		// Check if b is added in base
+		bp := findInBase(base, b)
+		if bp == -1 {
+			// add b into base
+			base[0] = append(base[0], b)
+			bp = 0
+		}
+		for _, d := range b.prev {
+			dp := findInBase(base, d)
+			if dp == nil {
+				base[bp+1] = append(base[bp+1], d]
+			} else {
+				delete(base[dp], d)
+				base[bp+1] = append(base[bp+1], d]
+			}
+		}
+	}
 }
 
 func (this *Dag) MakeDotGraph(fileName string) string {
